@@ -1,0 +1,81 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - run: bun install --frozen-lockfile
+
+      - run: npm run type
+      - run: npm run lint
+      - run: bun test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-lib:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.12
+
+      - run: bun install --frozen-lockfile
+
+      - run: bun run build:lib
+
+      - run: mv ./packages/generate-snake-animation/dist ${{ runner.temp }}/snk
+
+      - name: run via npx
+        run: |
+          npx --yes file:${{ runner.temp }}/snk --github_user=${{ github.repository_owner }} --output=snake.svg
+          test -f snake.svg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-action-svg-only:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: generate-snake-game-from-github-contribution-grid
+        id: generate-snake
+        uses: ./svg-only
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            dist/github-contribution-grid-snake.svg
+            dist/github-contribution-grid-snake-dark.svg?palette=github-dark
+            dist/github-contribution-grid-snake-ocean.svg?color_snake=orange&color_dots=#dadcdf94,#8dbdff,#64a1f4,#4b91f1,#3c7dd9
+            dist/github-contribution-grid-snake-grey.svg?color_snake=111&color_dots=#eee,#aaa,#888,#666,#444
+
+      - name: ensure the generated file exists
+        run: |
+          ls dist
+          test -f dist/github-contribution-grid-snake.svg
+          test -f dist/github-contribution-grid-snake-dark.svg
+          test -f dist/github-contribution-grid-snake-ocean.svg
+          test -f dist/github-contribution-grid-snake-grey.svg
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: snake-svg
+          path: dist

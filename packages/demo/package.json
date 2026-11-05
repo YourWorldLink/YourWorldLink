@@ -1,0 +1,20 @@
+{
+  "name": "@snk/demo",
+  "version": "1.0.0",
+  "dependencies": {
+    "@snk/action": "1.0.0",
+    "@snk/draw": "1.0.0",
+    "@snk/github-user-contribution": "1.0.0",
+    "@snk/solver": "1.0.0",
+    "@snk/svg-creator": "1.0.0",
+    "@snk/types": "1.0.0"
+  },
+  "devDependencies": {
+    "@types/dat.gui": "0.7.13",
+    "dat.gui": "0.7.9"
+  },
+  "scripts": {
+    "build": "bun build.ts",
+    "dev": "bun dev.ts"
+  }
+}
