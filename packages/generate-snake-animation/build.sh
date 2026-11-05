@@ -8,13 +8,17 @@ bun build ./generateSnakeAnimation.ts --outfile=dist/generateSnakeAnimation.js -
 bun build ./cli.ts --outfile=dist/cli.js --target=node --external=canvas --external=gifsicle --external=gif-encoder-2 --external=./generateSnakeAnimation.js
 chmod +x dist/cli.js
 
-# dts-bundle-generator is fetched at build time. It depends on `typescript: >=5.0.2`,
-# which resolves to the latest major, whose api no longer exposes `ts.sys`.
-# Keep the declaration bundling best effort so that the js/cli build is not blocked.
-types_entry='"types": "./generateSnakeAnimation.d.ts",'
-if ! bunx -p typescript@5.9.3 -p dts-bundle-generator@9.5.1 dts-bundle-generator --out-file dist/generateSnakeAnimation.d.ts --project tsconfig.json --no-banner --no-check generateSnakeAnimation.ts; then
-  echo "::warning::could not bundle the type declarations, shipping the package without types"
-  types_entry=""
+# Typescript declaration bundling is opt-in.
+# dts-bundle-generator is fetched at build time and declares `typescript: >=5.0.2`,
+# which resolves to a major whose api no longer exposes `ts.sys`; under bunx the
+# bundling therefore crashes on current runners. The js bundles and the cli do not
+# need it, so skip it by default and let `SNK_BUILD_TYPES=1` re-enable it once the
+# toolchain works again.
+types_entry=''
+if [ "${SNK_BUILD_TYPES:-0}" = "1" ]; then
+  if bunx dts-bundle-generator --out-file dist/generateSnakeAnimation.d.ts --project tsconfig.json --no-banner --no-check generateSnakeAnimation.ts; then
+    types_entry='"types": "./generateSnakeAnimation.d.ts",'
+  fi
 fi
 
 cat > dist/package.json << EOF
